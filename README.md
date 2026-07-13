@@ -52,3 +52,76 @@ Key features:
 ├── app.py          # Streamlit frontend app
 └── docker-compose.yml
 ```
+
+## Running the API
+
+You can start the FastAPI application using `uvicorn`:
+```bash
+# From the project root directory
+.venv\Scripts\uvicorn api.main:app --reload
+```
+Once started, the API will be available at `http://127.0.0.1:8000`.
+
+### Interactive Documentation (Swagger)
+FastAPI automatically generates interactive Swagger UI documentation at:
+- **Swagger UI**: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+- **ReDoc**: [http://127.0.0.1:8000/redoc](http://127.0.0.1:8000/redoc)
+
+### API Endpoints and Usage Examples
+
+#### 1. Single Wine Prediction `/predict`
+Send chemical properties of a single wine to predict its quality.
+
+**Request**:
+```bash
+curl -X POST "http://127.0.0.1:8000/predict" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "fixed_acidity": 7.4,
+       "volatile_acidity": 0.7,
+       "citric_acid": 0.0,
+       "residual_sugar": 1.9,
+       "chlorides": 0.076,
+       "free_sulfur_dioxide": 11.0,
+       "total_sulfur_dioxide": 34.0,
+       "density": 0.9978,
+       "pH": 3.51,
+       "sulphates": 0.56,
+       "alcohol": 9.4,
+       "type": "red"
+     }'
+```
+
+**Response**:
+```json
+{
+  "prediction": 5.234,
+  "rounded_prediction": 5,
+  "wine_type": "red"
+}
+```
+
+#### 2. Batch Prediction `/predict_batch`
+Upload a CSV file containing multiple wine records and get a CSV containing predictions in return.
+
+**Request**:
+```bash
+curl -X POST "http://127.0.0.1:8000/predict_batch" \
+     -F "file=@path/to/your/wines.csv" \
+     --output predictions.csv
+```
+
+#### 3. Model Info `/model_info`
+Retrieve information about the loaded model, including hyperparameters and expected features.
+
+```bash
+curl -X GET "http://127.0.0.1:8000/model_info"
+```
+
+#### 4. Model Performance Metrics `/metrics`
+Retrieve performance metrics (MAE, RMSE, R²) computed during validation.
+
+```bash
+curl -X GET "http://127.0.0.1:8000/metrics"
+```
+
