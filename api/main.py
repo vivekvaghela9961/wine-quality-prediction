@@ -131,7 +131,11 @@ def predict_quality(wine: WineInput):
     
     try:
         # Scale features
-        features_scaled = scaler.transform(features_df)
+        features_scaled = pd.DataFrame(
+            scaler.transform(features_df),
+            columns=features_df.columns,
+            index=features_df.index
+        )
         
         # Predict
         prediction = model.predict(features_scaled)[0]
