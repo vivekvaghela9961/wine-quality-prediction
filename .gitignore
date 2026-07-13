@@ -175,3 +175,6 @@ artifacts/*
 
 # Run logs
 logs/
+
+# Data drift reports
+docs/drift_report.json
