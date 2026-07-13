@@ -3,10 +3,13 @@ import io
 import pickle
 import pandas as pd
 import numpy as np
-from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi import FastAPI, HTTPException, UploadFile, File, Depends
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from contextlib import asynccontextmanager
+from sqlalchemy.orm import Session
+from api.database import engine, Base, get_db
+from api.models import PredictionLog
 
 # Define Pydantic schema for single wine input
 class WineInput(BaseModel):
@@ -31,6 +34,9 @@ scaler = None
 async def lifespan(app: FastAPI):
     """Load model and scaler on startup and clean up on shutdown."""
     global model, scaler
+    # Create SQLite tables on startup
+    Base.metadata.create_all(bind=engine)
+    
     # Try models folder first, then artifacts folder
     model_loaded = False
     for folder in ["models", "artifacts"]:
@@ -77,7 +83,7 @@ def health_check():
     return {"status": "healthy"}
 
 @app.post("/predict")
-def predict_quality(wine: WineInput):
+def predict_quality(wine: WineInput, db: Session = Depends(get_db)):
     """Predict wine quality score based on chemical features."""
     if model is None or scaler is None:
         raise HTTPException(status_code=503, detail="Model is not loaded.")
@@ -141,6 +147,29 @@ def predict_quality(wine: WineInput):
         
         # Predict
         prediction = model.predict(features_scaled)[0]
+        
+        # Persist to database prediction history
+        try:
+            log_entry = PredictionLog(
+                wine_type=wine_type,
+                fixed_acidity=wine.fixed_acidity,
+                volatile_acidity=wine.volatile_acidity,
+                citric_acid=wine.citric_acid,
+                residual_sugar=wine.residual_sugar,
+                chlorides=wine.chlorides,
+                free_sulfur_dioxide=wine.free_sulfur_dioxide,
+                total_sulfur_dioxide=wine.total_sulfur_dioxide,
+                density=wine.density,
+                pH=wine.pH,
+                sulphates=wine.sulphates,
+                alcohol=wine.alcohol,
+                predicted_quality=float(prediction)
+            )
+            db.add(log_entry)
+            db.commit()
+        except Exception as db_err:
+            # We print db logging failures so the endpoint response doesn't fail
+            print(f"Database logging failed: {db_err}")
         
         return {
             "prediction": float(prediction),
