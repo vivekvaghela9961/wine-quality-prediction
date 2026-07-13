@@ -1,3 +1,5 @@
+import os
+import pickle
 import pandas as pd
 import numpy as np
 import optuna
@@ -41,6 +43,21 @@ def tune_random_forest(X_train, y_train):
     print(f"Best trial: RMSE {study.best_value:.4f}")
     print(f"Best params: {study.best_params}")
     return study.best_params
+
+def save_artifacts(model, scaler):
+    """Save the model and scaler to models/ and artifacts/ folders."""
+    for folder in ["models", "artifacts"]:
+        os.makedirs(folder, exist_ok=True)
+        
+        model_path = os.path.join(folder, "model.pkl")
+        scaler_path = os.path.join(folder, "scaler.pkl")
+        
+        with open(model_path, "wb") as f:
+            pickle.dump(model, f)
+        with open(scaler_path, "wb") as f:
+            pickle.dump(scaler, f)
+            
+        print(f"Saved artifacts to {folder}/")
 
 def main():
     print("Loading processed dataset...")
@@ -104,6 +121,9 @@ def main():
     print(f"Mean Absolute Error (MAE): {final_mae:.4f}")
     print(f"Root Mean Squared Error (RMSE): {final_rmse:.4f}")
     print(f"R2 Score: {final_r2:.4f}")
+    
+    # Save best model and scaler
+    save_artifacts(best_model, scaler)
 
 if __name__ == "__main__":
     main()
