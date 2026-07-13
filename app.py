@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import requests
 import io
+import os
 
 # Set page config
 st.set_page_config(
@@ -13,7 +14,7 @@ st.set_page_config(
 )
 
 # API Configuration
-API_URL = "http://localhost:8000"
+API_URL = os.getenv("API_URL", "http://localhost:8000")
 
 # Title and header
 st.markdown("<h1 style='text-align: center; color: #800020;'>🍷 Wine Quality Predictor</h1>", unsafe_allow_html=True)
