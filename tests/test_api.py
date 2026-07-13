@@ -8,6 +8,16 @@ def client():
     with TestClient(app) as c:
         yield c
 
+@pytest.fixture
+def auth_headers(client):
+    """Sign up and log in a test user to get JWT authorization headers."""
+    # Ensure signup works
+    client.post("/auth/signup", json={"username": "testuser", "password": "password123"})
+    # Log in to get token
+    res = client.post("/auth/login", json={"username": "testuser", "password": "password123"})
+    token = res.json()["access_token"]
+    return {"Authorization": f"Bearer {token}"}
+
 def test_read_root(client):
     response = client.get("/")
     assert response.status_code == 200
@@ -20,7 +30,7 @@ def test_health_check(client):
     assert response.status_code == 200
     assert response.json() == {"status": "healthy"}
 
-def test_predict_red_wine(client):
+def test_predict_red_wine(client, auth_headers):
     payload = {
         "fixed_acidity": 7.4,
         "volatile_acidity": 0.7,
@@ -35,7 +45,7 @@ def test_predict_red_wine(client):
         "alcohol": 9.4,
         "type": "red"
     }
-    response = client.post("/predict", json=payload)
+    response = client.post("/predict", json=payload, headers=auth_headers)
     assert response.status_code == 200
     json_data = response.json()
     assert "prediction" in json_data
@@ -43,7 +53,7 @@ def test_predict_red_wine(client):
     assert json_data["wine_type"] == "red"
     assert isinstance(json_data["prediction"], float)
 
-def test_predict_white_wine(client):
+def test_predict_white_wine(client, auth_headers):
     payload = {
         "fixed_acidity": 6.8,
         "volatile_acidity": 0.26,
@@ -58,13 +68,36 @@ def test_predict_white_wine(client):
         "alcohol": 10.2,
         "type": "white"
     }
-    response = client.post("/predict", json=payload)
+    response = client.post("/predict", json=payload, headers=auth_headers)
     assert response.status_code == 200
     json_data = response.json()
     assert "prediction" in json_data
     assert json_data["wine_type"] == "white"
 
-def test_predict_invalid_type(client):
+def test_predict_unauthorized(client):
+    payload = {
+        "fixed_acidity": 7.4,
+        "volatile_acidity": 0.7,
+        "citric_acid": 0.0,
+        "residual_sugar": 1.9,
+        "chlorides": 0.076,
+        "free_sulfur_dioxide": 11.0,
+        "total_sulfur_dioxide": 34.0,
+        "density": 0.9978,
+        "pH": 3.51,
+        "sulphates": 0.56,
+        "alcohol": 9.4,
+        "type": "red"
+    }
+    # Call without Authorization headers
+    response = client.post("/predict", json=payload)
+    assert response.status_code in [401, 403]
+    
+    # Call with invalid headers
+    response = client.post("/predict", json=payload, headers={"Authorization": "Bearer badtoken"})
+    assert response.status_code == 401  # Unauthorized
+
+def test_predict_invalid_type(client, auth_headers):
     payload = {
         "fixed_acidity": 7.4,
         "volatile_acidity": 0.7,
@@ -79,11 +112,11 @@ def test_predict_invalid_type(client):
         "alcohol": 9.4,
         "type": "beer"  # Invalid
     }
-    response = client.post("/predict", json=payload)
+    response = client.post("/predict", json=payload, headers=auth_headers)
     assert response.status_code == 400
     assert "Invalid wine type" in response.json()["detail"]
 
-def test_predict_missing_fields(client):
+def test_predict_missing_fields(client, auth_headers):
     payload = {
         "fixed_acidity": 7.4,
         "volatile_acidity": 0.7,
@@ -98,10 +131,10 @@ def test_predict_missing_fields(client):
         "alcohol": 9.4,
         "type": "red"
     }
-    response = client.post("/predict", json=payload)
+    response = client.post("/predict", json=payload, headers=auth_headers)
     assert response.status_code == 422  # Unprocessable Entity (Validation Error)
 
-def test_predict_batch(client):
+def test_predict_batch(client, auth_headers):
     csv_data = (
         "fixed_acidity,volatile_acidity,citric_acid,residual_sugar,chlorides,"
         "free_sulfur_dioxide,total_sulfur_dioxide,density,pH,sulphates,alcohol,type\n"
@@ -110,7 +143,7 @@ def test_predict_batch(client):
     )
     
     files = {"file": ("wines.csv", csv_data, "text/csv")}
-    response = client.post("/predict_batch", files=files)
+    response = client.post("/predict_batch", files=files, headers=auth_headers)
     
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("text/csv")
@@ -120,7 +153,7 @@ def test_predict_batch(client):
     content = response.text
     assert "predicted_quality" in content
     assert "rounded_predicted_quality" in content
-    assert "total_acidity" not in content  # Engineered features should not leak to output if not requested, but output contains original columns plus predictions
+    assert "total_acidity" not in content
     
     lines = content.strip().split("\n")
     assert len(lines) == 3  # Header + 2 data rows
@@ -142,4 +175,3 @@ def test_get_metrics(client):
     assert json_data["RMSE"] == pytest.approx(0.6655)
     assert json_data["R2"] == pytest.approx(0.4109)
     assert json_data["CV_RMSE_Mean"] == pytest.approx(0.7423)
-

@@ -15,6 +15,7 @@ pydantic>=1.9.0
 python-multipart>=0.0.5
 python-dotenv>=0.20.0
 SQLAlchemy>=1.4.0
+pyjwt>=2.4.0
 
 # MLOps & tracking
 mlflow>=1.26.0

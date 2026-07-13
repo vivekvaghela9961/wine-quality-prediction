@@ -9,7 +9,8 @@ from pydantic import BaseModel, Field
 from contextlib import asynccontextmanager
 from sqlalchemy.orm import Session
 from api.database import engine, Base, get_db
-from api.models import PredictionLog
+from api.models import PredictionLog, User
+from api.auth import get_current_user, hash_password, verify_password, create_access_token
 
 # Define Pydantic schema for single wine input
 class WineInput(BaseModel):
@@ -25,6 +26,11 @@ class WineInput(BaseModel):
     sulphates: float = Field(..., example=0.56)
     alcohol: float = Field(..., example=9.4)
     type: str = Field(..., example="red", description="Type of wine: 'red' or 'white'")
+
+# Define Pydantic schema for authentication input
+class UserAuth(BaseModel):
+    username: str = Field(..., example="admin")
+    password: str = Field(..., example="secure_pass_123")
 
 # Global variables for model and scaler
 model = None
@@ -82,8 +88,35 @@ def health_check():
         raise HTTPException(status_code=503, detail="Model not loaded")
     return {"status": "healthy"}
 
+@app.post("/auth/signup")
+def signup(user_data: UserAuth, db: Session = Depends(get_db)):
+    """Create a new API user account."""
+    existing_user = db.query(User).filter(User.username == user_data.username).first()
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Username is already taken.")
+        
+    hashed = hash_password(user_data.password)
+    new_user = User(username=user_data.username, hashed_password=hashed)
+    db.add(new_user)
+    db.commit()
+    return {"message": "User signed up successfully", "username": user_data.username}
+
+@app.post("/auth/login")
+def login(user_data: UserAuth, db: Session = Depends(get_db)):
+    """Authenticate credentials and return a JWT access token."""
+    user = db.query(User).filter(User.username == user_data.username).first()
+    if not user or not verify_password(user_data.password, user.hashed_password):
+        raise HTTPException(status_code=401, detail="Invalid username or password.")
+        
+    access_token = create_access_token(data={"sub": user.username})
+    return {"access_token": access_token, "token_type": "bearer"}
+
 @app.post("/predict")
-def predict_quality(wine: WineInput, db: Session = Depends(get_db)):
+def predict_quality(
+    wine: WineInput, 
+    db: Session = Depends(get_db), 
+    current_user: str = Depends(get_current_user)
+):
     """Predict wine quality score based on chemical features."""
     if model is None or scaler is None:
         raise HTTPException(status_code=503, detail="Model is not loaded.")
@@ -183,7 +216,10 @@ def predict_quality(wine: WineInput, db: Session = Depends(get_db)):
         )
 
 @app.post("/predict_batch")
-async def predict_batch(file: UploadFile = File(...)):
+async def predict_batch(
+    file: UploadFile = File(...), 
+    current_user: str = Depends(get_current_user)
+):
     """Predict wine quality for a batch of wines uploaded via a CSV file."""
     if model is None or scaler is None:
         raise HTTPException(status_code=503, detail="Model is not loaded.")
