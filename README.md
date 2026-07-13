@@ -125,3 +125,25 @@ Retrieve performance metrics (MAE, RMSE, R²) computed during validation.
 curl -X GET "http://127.0.0.1:8000/metrics"
 ```
 
+## Running with Docker Compose
+
+For a complete production-grade deployment, you can orchestrate both the FastAPI backend and Streamlit frontend services using Docker Compose.
+
+### Quickstart
+
+1. **Build and Start Container Services**:
+   ```bash
+   docker-compose up --build
+   ```
+
+2. **Access the Services**:
+   - **FastAPI API Server**: [http://localhost:8000](http://localhost:8000)
+   - **Interactive API Documentation (Swagger)**: [http://localhost:8000/docs](http://localhost:8000/docs)
+   - **Streamlit Frontend Dashboard**: [http://localhost:8501](http://localhost:8501)
+
+3. **Shutdown Services**:
+   ```bash
+   docker-compose down
+   ```
+
+

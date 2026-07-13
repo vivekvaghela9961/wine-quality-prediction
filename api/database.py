@@ -1,10 +1,10 @@
+import os
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
 # Database URL for SQLite (local file database.db inside api/ or root)
-# Let's place it in the root folder so it's easy to spot and ignore
-DATABASE_URL = "sqlite:///./db.sqlite3"
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./db.sqlite3")
 
 # Create engine
 engine = create_engine(
