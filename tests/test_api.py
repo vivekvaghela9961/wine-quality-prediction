@@ -100,3 +100,28 @@ def test_predict_missing_fields(client):
     }
     response = client.post("/predict", json=payload)
     assert response.status_code == 422  # Unprocessable Entity (Validation Error)
+
+def test_predict_batch(client):
+    csv_data = (
+        "fixed_acidity,volatile_acidity,citric_acid,residual_sugar,chlorides,"
+        "free_sulfur_dioxide,total_sulfur_dioxide,density,pH,sulphates,alcohol,type\n"
+        "7.4,0.7,0.0,1.9,0.076,11.0,34.0,0.9978,3.51,0.56,9.4,red\n"
+        "6.8,0.26,0.34,6.1,0.046,30.0,110.0,0.9945,3.18,0.47,10.2,white\n"
+    )
+    
+    files = {"file": ("wines.csv", csv_data, "text/csv")}
+    response = client.post("/predict_batch", files=files)
+    
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/csv")
+    assert "attachment; filename=predictions.csv" in response.headers["content-disposition"]
+    
+    # Read the returned CSV
+    content = response.text
+    assert "predicted_quality" in content
+    assert "rounded_predicted_quality" in content
+    assert "total_acidity" not in content  # Engineered features should not leak to output if not requested, but output contains original columns plus predictions
+    
+    lines = content.strip().split("\n")
+    assert len(lines) == 3  # Header + 2 data rows
+

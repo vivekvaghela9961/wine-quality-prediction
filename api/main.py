@@ -1,8 +1,10 @@
 import os
+import io
 import pickle
 import pandas as pd
 import numpy as np
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from contextlib import asynccontextmanager
 
@@ -149,4 +151,137 @@ def predict_quality(wine: WineInput):
         raise HTTPException(
             status_code=500, 
             detail=f"Error making prediction: {str(e)}"
+        )
+
+@app.post("/predict_batch")
+async def predict_batch(file: UploadFile = File(...)):
+    """Predict wine quality for a batch of wines uploaded via a CSV file."""
+    if model is None or scaler is None:
+        raise HTTPException(status_code=503, detail="Model is not loaded.")
+        
+    if not file.filename.endswith(".csv"):
+        raise HTTPException(status_code=400, detail="Only CSV files are supported.")
+        
+    try:
+        # Read file content
+        content = await file.read()
+        df_raw = pd.read_csv(io.BytesIO(content))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid CSV file: {str(e)}")
+        
+    # Standardize column mapping to support both space and underscore separators
+    col_mapping = {
+        "fixed acidity": "fixed acidity",
+        "fixed_acidity": "fixed acidity",
+        "volatile acidity": "volatile acidity",
+        "volatile_acidity": "volatile acidity",
+        "citric acid": "citric acid",
+        "citric_acid": "citric acid",
+        "residual sugar": "residual sugar",
+        "residual_sugar": "residual sugar",
+        "chlorides": "chlorides",
+        "free sulfur dioxide": "free sulfur dioxide",
+        "free_sulfur_dioxide": "free sulfur dioxide",
+        "total sulfur dioxide": "total sulfur dioxide",
+        "total_sulfur_dioxide": "total sulfur dioxide",
+        "density": "density",
+        "pH": "pH",
+        "ph": "pH",
+        "sulphates": "sulphates",
+        "alcohol": "alcohol",
+        "type": "type",
+        "wine_type": "type"
+    }
+    
+    # Check if all required columns are present after mapping
+    mapped_columns = {}
+    for col in df_raw.columns:
+        norm_col = col.lower().strip()
+        if norm_col in col_mapping:
+            mapped_columns[col_mapping[norm_col]] = col
+            
+    required_fields = [
+        "fixed acidity", "volatile acidity", "citric acid", "residual sugar",
+        "chlorides", "free sulfur dioxide", "total sulfur dioxide", "density",
+        "pH", "sulphates", "alcohol", "type"
+    ]
+    
+    missing_fields = [f for f in required_fields if f not in mapped_columns]
+    if missing_fields:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Missing required columns in CSV. Missing: {missing_fields}"
+        )
+        
+    # Extract features for prediction
+    features_df = pd.DataFrame()
+    for field in required_fields:
+        orig_col = mapped_columns[field]
+        features_df[field] = df_raw[orig_col]
+        
+    # Standardize wine types
+    features_df["type"] = features_df["type"].astype(str).str.lower().str.strip()
+    invalid_types = features_df[~features_df["type"].isin(["red", "white"])]
+    if not invalid_types.empty:
+        raise HTTPException(
+            status_code=400,
+            detail="All wines must have type 'red' or 'white'."
+        )
+        
+    # Calculate engineered features
+    features_df["total_acidity"] = (
+        features_df["fixed acidity"] + features_df["volatile acidity"] + features_df["citric acid"]
+    )
+    features_df["acid_to_sugar_ratio"] = features_df["total_acidity"] / (
+        features_df["residual sugar"] + 1e-5
+    )
+    features_df["bound_sulfur_dioxide"] = (
+        features_df["total sulfur dioxide"] - features_df["free sulfur dioxide"]
+    )
+    features_df["is_red"] = features_df["type"].map({"red": 1, "white": 0}).astype(int)
+    
+    # Drop type column
+    features_df = features_df.drop(columns=["type"])
+    
+    # Define exact feature order required by the model
+    feature_order = [
+        "fixed acidity", "volatile acidity", "citric acid", "residual sugar",
+        "chlorides", "free sulfur dioxide", "total sulfur dioxide", "density",
+        "pH", "sulphates", "alcohol", "total_acidity", "acid_to_sugar_ratio",
+        "bound_sulfur_dioxide", "is_red"
+    ]
+    
+    # Ensure columns order
+    features_df = features_df[feature_order]
+    
+    try:
+        # Scale features
+        features_scaled = pd.DataFrame(
+            scaler.transform(features_df),
+            columns=features_df.columns,
+            index=features_df.index
+        )
+        
+        # Predict
+        predictions = model.predict(features_scaled)
+        
+        # Add predictions to original df
+        df_out = df_raw.copy()
+        df_out["predicted_quality"] = predictions
+        df_out["rounded_predicted_quality"] = np.round(predictions).astype(int)
+        
+        # Convert to CSV response
+        stream = io.StringIO()
+        df_out.to_csv(stream, index=False)
+        
+        response = StreamingResponse(
+            iter([stream.getvalue()]),
+            media_type="text/csv"
+        )
+        response.headers["Content-Disposition"] = "attachment; filename=predictions.csv"
+        return response
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error performing batch prediction: {str(e)}"
         )
