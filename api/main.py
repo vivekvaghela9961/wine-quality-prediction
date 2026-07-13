@@ -84,7 +84,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Wine Quality Prediction API",
-    description="An end-to-end API for predicting wine quality from chemical characteristics.",
+    description="API for predicting wine quality from chemical characteristics.",
     version="1.0.0",
     lifespan=lifespan,
 )
