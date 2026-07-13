@@ -5,6 +5,7 @@ import time
 import pandas as pd
 import numpy as np
 from fastapi import FastAPI, HTTPException, UploadFile, File, Depends
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from contextlib import asynccontextmanager
@@ -76,6 +77,15 @@ app = FastAPI(
     description="An end-to-end API for predicting wine quality from chemical characteristics.",
     version="1.0.0",
     lifespan=lifespan
+)
+
+# Configure CORS Middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 from fastapi import Request

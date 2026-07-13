@@ -178,3 +178,10 @@ logs/
 
 # Data drift reports
 docs/drift_report.json
+
+# Environment variables & secrets
+.env
+.env.local
+.env.*.local
+.env.prod
+
