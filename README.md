@@ -1,149 +1,116 @@
-# Wine Quality Prediction
+# Wine Quality Prediction & Monitoring Dashboard
 
-An end-to-end machine learning project to predict wine quality based on physicochemical properties using machine learning models, tracked with MLflow, served via FastAPI, and containerized with Docker.
+An end-to-end production-grade machine learning project that predicts wine quality based on physicochemical properties. Tracked with **MLflow**, served via a secure **FastAPI** backend with a **SQLite** audit database, and visualised with a modern **Streamlit** dashboard.
 
-## Project Overview
+## 📊 System Architecture
 
-This repository builds a production-grade machine learning application. It utilizes the UCI Wine Quality Dataset to predict the quality of wines (red and white) from chemical features.
+```
+                       +----------------------------+
+                       |     Streamlit Frontend     |
+                       |        (Port 8501)         |
+                       +--------------+-------------+
+                                      |
+                                      | HTTP Requests (Bearer Token)
+                                      v
+                       +----------------------------+
+                       |      FastAPI Backend       |
+                       |        (Port 8000)         |
+                       +-------+------------+-------+
+                               |            |
+                      ORM Logs |            | Load Pickle
+                               v            v
+               +---------------+--+      +--+------------------+
+               |  SQLite Database |      | Tuned Random Forest |
+               |   (db.sqlite3)   |      |   Model & Scaler    |
+               +------------------+      +---------------------+
+```
 
-Key features:
-- **Data Engineering**: Data cleaning, scaling, and feature engineering.
-- **Machine Learning**: Linear Regression, Random Forest, XGBoost, and LightGBM models.
-- **MLOps**: MLflow for tracking parameters, metrics, and models.
-- **API**: FastAPI with endpoints for single predictions, batch predictions (CSV), health monitoring, and SQLite logs database.
-- **Auth**: JWT-based login/signup for secure API access.
-- **Frontend**: Streamlit application for interactive prediction forms, batch CSV analysis, and historical logs.
-- **Docker**: Complete Docker Compose setup for localized service orchestration.
+## ✨ Features
+1. **Data Engineering**: Data cleaning, median imputation, outlier IQR-based clipping, scaling, and feature engineering (total acidity, acid-to-sugar ratio, bound SO2).
+2. **Machine Learning & Tuning**: Optuna hyperparameter optimization tuning Random Forest, comparing XGBoost, LightGBM, and Linear Regression.
+3. **MLOps Tracking**: MLflow tracking metrics (MAE, RMSE, R²), parameter parameters, and model artifacts.
+4. **Secure API**: FastAPI service utilizing JWT auth and password hashing. Ends include `/predict` (single), `/predict_batch` (CSV streams), `/predictions_history`, `/model_info`, and `/metrics`.
+5. **Interactive Frontend**: Streamlit dashboard with chemical input forms, batch CSV predictions, database history log views, and global feature importance charts.
+6. **Logging & Monitoring**: Request processing latency middleware logs requests to rotating console/file handlers (`logs/api.log`). Statistical feature drift detection using Kolmogorov-Smirnov tests.
+7. **Containerization**: Full multi-container setups using Docker and Docker Compose.
+8. **CI/CD**: GitHub Actions checking code formatting (Black, Flake8), running unit tests, and validating Docker builds on merges.
 
-## Getting Started
+---
 
-### Prerequisites
-- Python 3.9+
-- Git
-- Docker & Docker Compose (optional, for Phase 9+)
+## 🚀 Getting Started
 
-### Installation
-1. Clone the repository:
+### 1. Prerequisites
+- Python 3.10+
+- Docker & Docker Compose (optional)
+
+### 2. Local Setup
+1. **Clone the repository**:
    ```bash
    git clone <repo-url>
    cd "Wine Predictions Project"
    ```
-2. Create and activate a virtual environment:
+
+2. **Create and activate a virtual environment**:
    ```bash
    python -m venv .venv
-   # Windows
+   # Windows:
    .venv\Scripts\activate
-   # macOS/Linux
+   # Linux/macOS:
    source .venv/bin/activate
    ```
-3. Install dependencies:
+
+3. **Install dependencies**:
    ```bash
    pip install -r requirements.txt
    ```
 
-## Folder Structure
-```
-├── data/           # Raw and processed datasets
-├── src/            # Python source code for data cleaning, training, and evaluation
-├── api/            # FastAPI application files
-├── models/         # Saved pickle model and scaler files
-├── tests/          # Unit and integration tests
-├── docs/           # Project reports and documentation
-├── app.py          # Streamlit frontend app
-└── docker-compose.yml
-```
-
-## Running the API
-
-You can start the FastAPI application using `uvicorn`:
-```bash
-# From the project root directory
-.venv\Scripts\uvicorn api.main:app --reload
-```
-Once started, the API will be available at `http://127.0.0.1:8000`.
-
-### Interactive Documentation (Swagger)
-FastAPI automatically generates interactive Swagger UI documentation at:
-- **Swagger UI**: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
-- **ReDoc**: [http://127.0.0.1:8000/redoc](http://127.0.0.1:8000/redoc)
-
-### API Endpoints and Usage Examples
-
-#### 1. Single Wine Prediction `/predict`
-Send chemical properties of a single wine to predict its quality.
-
-**Request**:
-```bash
-curl -X POST "http://127.0.0.1:8000/predict" \
-     -H "Content-Type: application/json" \
-     -d '{
-       "fixed_acidity": 7.4,
-       "volatile_acidity": 0.7,
-       "citric_acid": 0.0,
-       "residual_sugar": 1.9,
-       "chlorides": 0.076,
-       "free_sulfur_dioxide": 11.0,
-       "total_sulfur_dioxide": 34.0,
-       "density": 0.9978,
-       "pH": 3.51,
-       "sulphates": 0.56,
-       "alcohol": 9.4,
-       "type": "red"
-     }'
-```
-
-**Response**:
-```json
-{
-  "prediction": 5.234,
-  "rounded_prediction": 5,
-  "wine_type": "red"
-}
-```
-
-#### 2. Batch Prediction `/predict_batch`
-Upload a CSV file containing multiple wine records and get a CSV containing predictions in return.
-
-**Request**:
-```bash
-curl -X POST "http://127.0.0.1:8000/predict_batch" \
-     -F "file=@path/to/your/wines.csv" \
-     --output predictions.csv
-```
-
-#### 3. Model Info `/model_info`
-Retrieve information about the loaded model, including hyperparameters and expected features.
-
-```bash
-curl -X GET "http://127.0.0.1:8000/model_info"
-```
-
-#### 4. Model Performance Metrics `/metrics`
-Retrieve performance metrics (MAE, RMSE, R²) computed during validation.
-
-```bash
-curl -X GET "http://127.0.0.1:8000/metrics"
-```
-
-## Running with Docker Compose
-
-For a complete production-grade deployment, you can orchestrate both the FastAPI backend and Streamlit frontend services using Docker Compose.
-
-### Quickstart
-
-1. **Build and Start Container Services**:
+4. **Initialize Environment Variables**:
    ```bash
-   docker-compose up --build
+   cp .env.example .env
    ```
 
-2. **Access the Services**:
-   - **FastAPI API Server**: [http://localhost:8000](http://localhost:8000)
-   - **Interactive API Documentation (Swagger)**: [http://localhost:8000/docs](http://localhost:8000/docs)
-   - **Streamlit Frontend Dashboard**: [http://localhost:8501](http://localhost:8501)
+---
 
-3. **Shutdown Services**:
+## 🛠️ Execution & Testing
+
+### Run Tests and Coverage Reports
+Run the test suite with PowerShell helper or pytest directly:
+```powershell
+./run_tests.ps1
+```
+Or:
+```bash
+pytest --cov=api --cov=src --cov-report=term-missing tests/
+```
+
+### Start API and Streamlit Dashboard Locally
+1. **Start the API Server**:
    ```bash
-   docker-compose down
+   uvicorn api.main:app --reload
    ```
+2. **Start the Streamlit Dashboard**:
+   ```bash
+   streamlit run app.py
+   ```
+   Open [http://localhost:8501](http://localhost:8501) in your browser.
 
+---
 
+## 🐳 Running with Docker Compose
+
+Orchestrate the entire stack with a single command:
+```bash
+docker-compose up --build
+```
+- **FastAPI API**: [http://localhost:8000](http://localhost:8000)
+- **Interactive Swagger Docs**: [http://localhost:8000/docs](http://localhost:8000/docs)
+- **Streamlit Frontend**: [http://localhost:8501](http://localhost:8501)
+
+---
+
+## 🔍 Data Drift Detection
+To check if live inference data matches the baseline training distribution, execute:
+```bash
+python -m src.drift_detection
+```
+This runs Kolmogorov-Smirnov tests on your SQLite logs and training reference values, printing outputs and saving details to `docs/drift_report.json`.
