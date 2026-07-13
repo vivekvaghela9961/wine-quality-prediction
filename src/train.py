@@ -3,6 +3,8 @@ import pickle
 import pandas as pd
 import numpy as np
 import optuna
+import mlflow
+import mlflow.sklearn
 from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor
@@ -46,6 +48,7 @@ def tune_random_forest(X_train, y_train):
 
 def save_artifacts(model, scaler):
     """Save the model and scaler to models/ and artifacts/ folders."""
+    paths = []
     for folder in ["models", "artifacts"]:
         os.makedirs(folder, exist_ok=True)
         
@@ -58,8 +61,13 @@ def save_artifacts(model, scaler):
             pickle.dump(scaler, f)
             
         print(f"Saved artifacts to {folder}/")
+        paths.append((model_path, scaler_path))
+    return paths[0]  # Return models/ paths
 
 def main():
+    # Set MLflow experiment
+    mlflow.set_experiment("Wine Quality Prediction")
+    
     print("Loading processed dataset...")
     X, y = load_processed_data("data/processed/winequality-processed.csv")
     
@@ -83,47 +91,69 @@ def main():
     
     results = []
     
-    for name, model in models.items():
-        print(f"Training baseline {name}...")
-        model.fit(X_train_scaled, y_train)
+    # Start MLflow run for comparison
+    with mlflow.start_run(run_name="Model Comparison") as comparison_run:
+        for name, model in models.items():
+            print(f"Training baseline {name}...")
+            model.fit(X_train_scaled, y_train)
+            
+            # Predict and evaluate
+            preds = model.predict(X_test_scaled)
+            mae = mean_absolute_error(y_test, preds)
+            rmse = np.sqrt(mean_squared_error(y_test, preds))
+            r2 = r2_score(y_test, preds)
+            
+            results.append({
+                "Model": name,
+                "MAE": mae,
+                "RMSE": rmse,
+                "R2": r2
+            })
+            
+            # Log metrics to MLflow for each baseline model
+            mlflow.log_metric(f"{name.replace(' ', '_')}_MAE", mae)
+            mlflow.log_metric(f"{name.replace(' ', '_')}_RMSE", rmse)
+            mlflow.log_metric(f"{name.replace(' ', '_')}_R2", r2)
+            
+        results_df = pd.DataFrame(results)
+        print("\n--- Model Comparison (Baseline) ---")
+        print(results_df.to_string(index=False))
         
-        # Predict and evaluate
-        preds = model.predict(X_test_scaled)
-        mae = mean_absolute_error(y_test, preds)
-        rmse = np.sqrt(mean_squared_error(y_test, preds))
-        r2 = r2_score(y_test, preds)
-        
-        results.append({
-            "Model": name,
-            "MAE": mae,
-            "RMSE": rmse,
-            "R2": r2
-        })
-        
-    results_df = pd.DataFrame(results)
-    print("\n--- Model Comparison (Baseline) ---")
-    print(results_df.to_string(index=False))
-    
     # Tune the best model (Random Forest)
     best_params = tune_random_forest(X_train_scaled, y_train)
     
-    # Train final model with best params
-    print("\nTraining final tuned RandomForest model...")
-    best_model = RandomForestRegressor(**best_params, random_state=42)
-    best_model.fit(X_train_scaled, y_train)
-    
-    final_preds = best_model.predict(X_test_scaled)
-    final_mae = mean_absolute_error(y_test, final_preds)
-    final_rmse = np.sqrt(mean_squared_error(y_test, final_preds))
-    final_r2 = r2_score(y_test, final_preds)
-    
-    print("\n--- Tuned Random Forest Evaluation ---")
-    print(f"Mean Absolute Error (MAE): {final_mae:.4f}")
-    print(f"Root Mean Squared Error (RMSE): {final_rmse:.4f}")
-    print(f"R2 Score: {final_r2:.4f}")
-    
-    # Save best model and scaler
-    save_artifacts(best_model, scaler)
+    # Start MLflow run for tuned model
+    with mlflow.start_run(run_name="Tuned Random Forest") as tuned_run:
+        # Log parameters
+        mlflow.log_params(best_params)
+        
+        # Train final model with best params
+        print("\nTraining final tuned RandomForest model...")
+        best_model = RandomForestRegressor(**best_params, random_state=42)
+        best_model.fit(X_train_scaled, y_train)
+        
+        final_preds = best_model.predict(X_test_scaled)
+        final_mae = mean_absolute_error(y_test, final_preds)
+        final_rmse = np.sqrt(mean_squared_error(y_test, final_preds))
+        final_r2 = r2_score(y_test, final_preds)
+        
+        print("\n--- Tuned Random Forest Evaluation ---")
+        print(f"Mean Absolute Error (MAE): {final_mae:.4f}")
+        print(f"Root Mean Squared Error (RMSE): {final_rmse:.4f}")
+        print(f"R2 Score: {final_r2:.4f}")
+        
+        # Log final metrics
+        mlflow.log_metric("MAE", final_mae)
+        mlflow.log_metric("RMSE", final_rmse)
+        mlflow.log_metric("R2", final_r2)
+        
+        # Save best model and scaler local files
+        model_path, scaler_path = save_artifacts(best_model, scaler)
+        
+        # Log artifacts and model to MLflow
+        mlflow.sklearn.log_model(best_model, "random_forest_model")
+        mlflow.log_artifact(scaler_path)
+        print("Logged model and scaler to MLflow.")
 
 if __name__ == "__main__":
     main()
