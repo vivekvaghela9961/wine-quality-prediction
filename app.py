@@ -28,7 +28,9 @@ st.sidebar.title("Authentication")
 if st.session_state.token is None:
     auth_mode = st.sidebar.selectbox("Action", ["Login", "Sign Up"])
     username_input = st.sidebar.text_input("Username", key="username_in")
-    password_input = st.sidebar.text_input("Password", type="password", key="password_in")
+    password_input = st.sidebar.text_input(
+        "Password", type="password", key="password_in"
+    )
 
     if auth_mode == "Login":
         if st.sidebar.button("Login"):
@@ -106,7 +108,9 @@ else:
             free_sulfur = st.slider("Free Sulfur Dioxide", 1.0, 100.0, 30.0, 1.0)
             total_sulfur = st.slider("Total Sulfur Dioxide", 5.0, 300.0, 115.0, 1.0)
         with col3:
-            density = st.number_input("Density", 0.9850, 1.0100, 0.9950, 0.0001, format="%.4f")
+            density = st.number_input(
+                "Density", 0.9850, 1.0100, 0.9950, 0.0001, format="%.4f"
+            )
             ph = st.slider("pH", 2.7, 4.0, 3.2, 0.01)
             sulphates = st.slider("Sulphates", 0.2, 2.0, 0.6, 0.01)
             alcohol = st.slider("Alcohol Vol %", 8.0, 15.0, 10.5, 0.1)
@@ -148,7 +152,7 @@ else:
     with tabs[1]:
         st.write("### CSV Upload")
         uploaded_file = st.file_uploader("Upload dataset", type="csv")
-        
+
         if uploaded_file is not None:
             df = pd.read_csv(uploaded_file)
             st.dataframe(df.head())
@@ -158,7 +162,9 @@ else:
                 files = {"file": (uploaded_file.name, uploaded_file.read(), "text/csv")}
 
                 try:
-                    res = requests.post(f"{API_URL}/predict_batch", files=files, headers=headers)
+                    res = requests.post(
+                        f"{API_URL}/predict_batch", files=files, headers=headers
+                    )
                     if res.status_code == 200:
                         pred_df = pd.read_csv(io.BytesIO(res.content))
                         st.dataframe(pred_df.head())
@@ -187,7 +193,9 @@ else:
                 history_logs = res.json()
                 if history_logs:
                     df_logs = pd.DataFrame(history_logs)
-                    df_logs["timestamp"] = pd.to_datetime(df_logs["timestamp"]).dt.strftime("%Y-%m-%d %H:%M:%S")
+                    df_logs["timestamp"] = pd.to_datetime(
+                        df_logs["timestamp"]
+                    ).dt.strftime("%Y-%m-%d %H:%M:%S")
                     st.dataframe(df_logs, use_container_width=True)
                 else:
                     st.write("No records found.")
@@ -198,7 +206,35 @@ else:
 
     with tabs[3]:
         st.write("### Features")
-        features = ["alcohol", "volatile acidity", "free sulfur dioxide", "sulphates", "density", "citric acid", "total sulfur dioxide", "residual sugar", "chlorides", "pH", "fixed acidity", "is_red"]
-        importances = [0.35, 0.15, 0.08, 0.07, 0.06, 0.05, 0.05, 0.05, 0.04, 0.04, 0.03, 0.03]
-        chart_df = pd.DataFrame({"Feature": features, "Importance": importances}).sort_values(by="Importance", ascending=True)
+        features = [
+            "alcohol",
+            "volatile acidity",
+            "free sulfur dioxide",
+            "sulphates",
+            "density",
+            "citric acid",
+            "total sulfur dioxide",
+            "residual sugar",
+            "chlorides",
+            "pH",
+            "fixed acidity",
+            "is_red",
+        ]
+        importances = [
+            0.35,
+            0.15,
+            0.08,
+            0.07,
+            0.06,
+            0.05,
+            0.05,
+            0.05,
+            0.04,
+            0.04,
+            0.03,
+            0.03,
+        ]
+        chart_df = pd.DataFrame(
+            {"Feature": features, "Importance": importances}
+        ).sort_values(by="Importance", ascending=True)
         st.bar_chart(data=chart_df, x="Feature", y="Importance")

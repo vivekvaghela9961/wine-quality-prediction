@@ -34,7 +34,11 @@ class WineInput(BaseModel):
     pH: float = Field(..., json_schema_extra={"example": 3.51})
     sulphates: float = Field(..., json_schema_extra={"example": 0.56})
     alcohol: float = Field(..., json_schema_extra={"example": 9.4})
-    type: str = Field(..., json_schema_extra={"example": "red"}, description="Type of wine: 'red' or 'white'")
+    type: str = Field(
+        ...,
+        json_schema_extra={"example": "red"},
+        description="Type of wine: 'red' or 'white'",
+    )
 
 
 # Define Pydantic schema for authentication input
