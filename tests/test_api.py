@@ -213,3 +213,9 @@ def test_predict_batch_malformed_csv(client, auth_headers):
     response = client.post("/predict_batch", files=files, headers=auth_headers)
     assert response.status_code == 400
 
+def test_predictions_history(client, auth_headers):
+    # Retrieve history
+    response = client.get("/predictions_history", headers=auth_headers)
+    assert response.status_code == 200
+    assert isinstance(response.json(), list)
+

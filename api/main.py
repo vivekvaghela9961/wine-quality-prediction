@@ -391,3 +391,29 @@ def get_metrics():
         "CV_RMSE_Mean": 0.7423,
         "CV_RMSE_Std": 0.0361
     }
+
+@app.get("/predictions_history")
+def get_predictions_history(db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
+    """Retrieve prediction history logs."""
+    api_logger.info(f"User '{current_user}' requested prediction logs history.")
+    logs = db.query(PredictionLog).order_by(PredictionLog.id.desc()).limit(100).all()
+    return [
+        {
+            "id": log.id,
+            "timestamp": log.timestamp.isoformat(),
+            "wine_type": log.wine_type,
+            "fixed_acidity": log.fixed_acidity,
+            "volatile_acidity": log.volatile_acidity,
+            "citric_acid": log.citric_acid,
+            "residual_sugar": log.residual_sugar,
+            "chlorides": log.chlorides,
+            "free_sulfur_dioxide": log.free_sulfur_dioxide,
+            "total_sulfur_dioxide": log.total_sulfur_dioxide,
+            "density": log.density,
+            "pH": log.pH,
+            "sulphates": log.sulphates,
+            "alcohol": log.alcohol,
+            "predicted_quality": log.predicted_quality
+        }
+        for log in logs
+    ]
