@@ -172,3 +172,6 @@ models/*
 artifacts/*
 !artifacts/.gitkeep
 !artifacts/*.pkl
+
+# Run logs
+logs/

@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from api.database import engine, Base, get_db
 from api.models import PredictionLog, User
 from api.auth import get_current_user, hash_password, verify_password, create_access_token
+from api.logging_config import api_logger
 
 # Define Pydantic schema for single wine input
 class WineInput(BaseModel):
@@ -40,8 +41,10 @@ scaler = None
 async def lifespan(app: FastAPI):
     """Load model and scaler on startup and clean up on shutdown."""
     global model, scaler
+    api_logger.info("Initializing API application lifespan setup...")
     # Create SQLite tables on startup
     Base.metadata.create_all(bind=engine)
+    api_logger.info("Database tables verified.")
     
     # Try models folder first, then artifacts folder
     model_loaded = False
@@ -54,16 +57,18 @@ async def lifespan(app: FastAPI):
             with open(scaler_path, "rb") as f:
                 scaler = pickle.load(f)
             model_loaded = True
-            print(f"Successfully loaded model and scaler from '{folder}/'")
+            api_logger.info(f"Successfully loaded model and scaler from '{folder}/'")
             break
             
     if not model_loaded:
+        api_logger.error("API startup failed: Model or scaler pickle file not found.")
         raise RuntimeError("Model or scaler pickle file not found. Run training first.")
         
     yield
     # Clean up on shutdown if needed
     model = None
     scaler = None
+    api_logger.info("API application lifespan shutdown complete.")
 
 app = FastAPI(
     title="Wine Quality Prediction API",
@@ -118,7 +123,9 @@ def predict_quality(
     current_user: str = Depends(get_current_user)
 ):
     """Predict wine quality score based on chemical features."""
+    api_logger.info(f"User '{current_user}' requested quality prediction for a '{wine.type}' wine.")
     if model is None or scaler is None:
+        api_logger.warning("Prediction endpoint called but model is not loaded.")
         raise HTTPException(status_code=503, detail="Model is not loaded.")
         
     # Validate type
@@ -180,6 +187,7 @@ def predict_quality(
         
         # Predict
         prediction = model.predict(features_scaled)[0]
+        api_logger.info(f"Model prediction generated: {prediction}")
         
         # Persist to database prediction history
         try:
@@ -200,9 +208,10 @@ def predict_quality(
             )
             db.add(log_entry)
             db.commit()
+            api_logger.info(f"Prediction successfully logged to database with ID: {log_entry.id}")
         except Exception as db_err:
             # We print db logging failures so the endpoint response doesn't fail
-            print(f"Database logging failed: {db_err}")
+            api_logger.error(f"Database logging failed: {db_err}")
         
         return {
             "prediction": float(prediction),
@@ -221,7 +230,9 @@ async def predict_batch(
     current_user: str = Depends(get_current_user)
 ):
     """Predict wine quality for a batch of wines uploaded via a CSV file."""
+    api_logger.info(f"User '{current_user}' uploaded batch prediction file: '{file.filename}'")
     if model is None or scaler is None:
+        api_logger.warning("Batch prediction endpoint called but model is not loaded.")
         raise HTTPException(status_code=503, detail="Model is not loaded.")
         
     if not file.filename.endswith(".csv"):
@@ -329,6 +340,7 @@ async def predict_batch(
         
         # Predict
         predictions = model.predict(features_scaled)
+        api_logger.info(f"Generated {len(predictions)} batch predictions successfully.")
         
         # Add predictions to original df
         df_out = df_raw.copy()
@@ -344,8 +356,10 @@ async def predict_batch(
             media_type="text/csv"
         )
         response.headers["Content-Disposition"] = "attachment; filename=predictions.csv"
+        api_logger.info(f"Streaming back predictions CSV for user '{current_user}'")
         return response
     except Exception as e:
+        api_logger.error(f"Error performing batch prediction: {e}")
         raise HTTPException(
             status_code=500,
             detail=f"Error performing batch prediction: {str(e)}"
