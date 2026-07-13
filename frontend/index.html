@@ -3,231 +3,246 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wine Quality Predictor - Premium</title>
-    <!-- Modern Google Font: Outfit -->
+    <title>Wine Quality Predictor</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Chart.js for Insights Tab -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
-    <!-- Background Decoration for Glassmorphism -->
-    <div class="blob blob-1"></div>
-    <div class="blob blob-2"></div>
-    <div class="blob blob-3"></div>
+    <!-- Fixed background layers -->
+    <div class="bg-image"></div>
+    <div class="bg-overlay"></div>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
 
-    <div id="app-container" class="glass-container">
-        
-        <!-- ======================= -->
-        <!-- AUTHENTICATION VIEW     -->
-        <!-- ======================= -->
-        <div id="auth-view" class="view active">
+    <div id="app-container">
+
+        <!-- ============================== -->
+        <!-- AUTH VIEW                      -->
+        <!-- ============================== -->
+        <div id="auth-view">
             <div class="auth-box">
-                <div class="auth-header">
-                    <h2>Wine Quality AI</h2>
-                    <p>Enter your credentials to continue</p>
-                </div>
-                
-                <div class="auth-toggle">
-                    <button id="toggle-login" class="active">Login</button>
-                    <button id="toggle-signup">Sign Up</button>
+                <div class="auth-logo">
+                    <span class="wine-icon">🍷</span>
+                    <h1>Vinum Predict</h1>
+                    <p>Premium Wine Quality Intelligence</p>
                 </div>
 
-                <form id="auth-form">
-                    <div class="input-group">
-                        <label for="username">Username</label>
-                        <input type="text" id="username" placeholder="Enter username" required>
+                <div class="auth-tabs">
+                    <button id="tab-login" class="active">Login</button>
+                    <button id="tab-signup">Sign Up</button>
+                </div>
+
+                <form id="auth-form" autocomplete="off">
+                    <div class="field">
+                        <label for="auth-username">Username</label>
+                        <input type="text" id="auth-username" placeholder="your username" required>
                     </div>
-                    <div class="input-group">
-                        <label for="password">Password</label>
-                        <input type="password" id="password" placeholder="Enter password" required>
+                    <div class="field">
+                        <label for="auth-password">Password</label>
+                        <input type="password" id="auth-password" placeholder="••••••••" required>
                     </div>
-                    <button type="submit" id="auth-submit-btn" class="primary-btn">Login</button>
+                    <button type="submit" id="auth-btn" class="btn-primary">
+                        <span id="auth-btn-text">Enter</span>
+                    </button>
                 </form>
-                <div id="auth-message" class="message"></div>
+
+                <div id="auth-message"></div>
             </div>
         </div>
 
-        <!-- ======================= -->
-        <!-- DASHBOARD VIEW          -->
-        <!-- ======================= -->
-        <div id="dashboard-view" class="view hidden">
-            <!-- Sidebar -->
-            <aside class="sidebar">
-                <div class="sidebar-header">
-                    <h2>Wine AI</h2>
-                    <span id="user-display" class="badge"></span>
-                </div>
-                
-                <nav class="sidebar-nav">
-                    <button class="nav-btn active" data-target="tab-predict">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                        Single Predict
-                    </button>
-                    <button class="nav-btn" data-target="tab-batch">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                        Batch Predict
-                    </button>
-                    <button class="nav-btn" data-target="tab-history">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                        History
-                    </button>
-                    <button class="nav-btn" data-target="tab-insights">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
-                        Insights
-                    </button>
-                </nav>
+        <!-- ============================== -->
+        <!-- DASHBOARD VIEW                 -->
+        <!-- ============================== -->
+        <div id="dashboard-view" class="hidden">
 
-                <div class="sidebar-footer">
-                    <button id="logout-btn" class="secondary-btn">Logout</button>
+            <!-- SIDEBAR -->
+            <aside class="sidebar">
+                <div class="sidebar-bg"></div>
+                <div class="sidebar-inner">
+                    <div class="sidebar-brand">
+                        <h2>🍷 Vinum AI</h2>
+                        <div class="user-pill" id="user-pill">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+                            <span id="user-name"></span>
+                        </div>
+                    </div>
+
+                    <nav class="nav">
+                        <button class="nav-item active" data-tab="tab-predict">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+                            Single Predict
+                        </button>
+                        <button class="nav-item" data-tab="tab-batch">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                            Batch Predict
+                        </button>
+                        <button class="nav-item" data-tab="tab-history">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                            History
+                        </button>
+                        <button class="nav-item" data-tab="tab-insights">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                            Insights
+                        </button>
+                    </nav>
+
+                    <div class="sidebar-footer">
+                        <button id="logout-btn" class="btn-secondary">🚪 Sign Out</button>
+                    </div>
                 </div>
             </aside>
 
-            <!-- Main Content Area -->
-            <main class="main-content">
-                
-                <!-- TAB: SINGLE PREDICT -->
-                <section id="tab-predict" class="tab-content active">
-                    <header class="content-header">
-                        <h2>Quality Assessor</h2>
-                        <p>Adjust the chemical parameters to predict the wine quality score.</p>
-                    </header>
+            <!-- MAIN AREA -->
+            <main class="main-area">
 
-                    <div class="predict-layout">
-                        <div class="controls-panel glass-card">
-                            <form id="predict-form">
+                <!-- TAB: SINGLE PREDICT -->
+                <section id="tab-predict" class="tab-section active">
+                    <div class="section-header">
+                        <h2>Quality Assessor</h2>
+                        <p>Tune the chemical parameters and run the model to get a quality score.</p>
+                    </div>
+
+                    <div class="predict-grid">
+                        <!-- Input controls -->
+                        <div class="card">
+                            <form id="predict-form" class="predict-form">
                                 <div class="form-grid">
-                                    <div class="input-group">
-                                        <label for="p_type">Wine Type</label>
-                                        <select id="p_type">
-                                            <option value="red">Red</option>
-                                            <option value="white">White</option>
+                                    <div class="field">
+                                        <label for="p-type">Wine Type</label>
+                                        <select id="p-type">
+                                            <option value="red">🍷 Red</option>
+                                            <option value="white">🥂 White</option>
                                         </select>
                                     </div>
-                                    <div class="input-group">
-                                        <label for="p_fixed_acidity">Fixed Acidity (4-16)</label>
-                                        <input type="number" id="p_fixed_acidity" step="0.1" value="7.4" min="4" max="16" required>
+                                    <div class="field">
+                                        <label for="p-fixed-acidity">Fixed Acidity</label>
+                                        <input type="number" id="p-fixed-acidity" step="0.1" value="7.4" min="4" max="16" required>
                                     </div>
-                                    <div class="input-group">
-                                        <label for="p_volatile_acidity">Volatile Acidity (0.1-1.5)</label>
-                                        <input type="number" id="p_volatile_acidity" step="0.01" value="0.3" min="0.1" max="1.5" required>
+                                    <div class="field">
+                                        <label for="p-volatile-acidity">Volatile Acidity</label>
+                                        <input type="number" id="p-volatile-acidity" step="0.01" value="0.3" min="0.1" max="1.5" required>
                                     </div>
-                                    <div class="input-group">
-                                        <label for="p_citric_acid">Citric Acid (0-1)</label>
-                                        <input type="number" id="p_citric_acid" step="0.01" value="0.3" min="0" max="1" required>
+                                    <div class="field">
+                                        <label for="p-citric-acid">Citric Acid</label>
+                                        <input type="number" id="p-citric-acid" step="0.01" value="0.3" min="0" max="1" required>
                                     </div>
-                                    <div class="input-group">
-                                        <label for="p_residual_sugar">Residual Sugar (0.5-20)</label>
-                                        <input type="number" id="p_residual_sugar" step="0.1" value="2.0" min="0.5" max="20" required>
+                                    <div class="field">
+                                        <label for="p-residual-sugar">Residual Sugar</label>
+                                        <input type="number" id="p-residual-sugar" step="0.1" value="2.0" min="0.5" max="20" required>
                                     </div>
-                                    <div class="input-group">
-                                        <label for="p_chlorides">Chlorides (0.01-0.6)</label>
-                                        <input type="number" id="p_chlorides" step="0.001" value="0.05" min="0.01" max="0.6" required>
+                                    <div class="field">
+                                        <label for="p-chlorides">Chlorides</label>
+                                        <input type="number" id="p-chlorides" step="0.001" value="0.05" min="0.01" max="0.6" required>
                                     </div>
-                                    <div class="input-group">
-                                        <label for="p_free_sulfur">Free SO2 (1-100)</label>
-                                        <input type="number" id="p_free_sulfur" step="1" value="30" min="1" max="100" required>
+                                    <div class="field">
+                                        <label for="p-free-sulfur">Free SO₂</label>
+                                        <input type="number" id="p-free-sulfur" step="1" value="30" min="1" max="100" required>
                                     </div>
-                                    <div class="input-group">
-                                        <label for="p_total_sulfur">Total SO2 (5-300)</label>
-                                        <input type="number" id="p_total_sulfur" step="1" value="115" min="5" max="300" required>
+                                    <div class="field">
+                                        <label for="p-total-sulfur">Total SO₂</label>
+                                        <input type="number" id="p-total-sulfur" step="1" value="115" min="5" max="300" required>
                                     </div>
-                                    <div class="input-group">
-                                        <label for="p_density">Density (0.985-1.01)</label>
-                                        <input type="number" id="p_density" step="0.0001" value="0.9950" min="0.985" max="1.01" required>
+                                    <div class="field">
+                                        <label for="p-density">Density</label>
+                                        <input type="number" id="p-density" step="0.0001" value="0.9950" min="0.985" max="1.01" required>
                                     </div>
-                                    <div class="input-group">
-                                        <label for="p_ph">pH (2.7-4.0)</label>
-                                        <input type="number" id="p_ph" step="0.01" value="3.2" min="2.7" max="4.0" required>
+                                    <div class="field">
+                                        <label for="p-ph">pH Level</label>
+                                        <input type="number" id="p-ph" step="0.01" value="3.2" min="2.7" max="4.0" required>
                                     </div>
-                                    <div class="input-group">
-                                        <label for="p_sulphates">Sulphates (0.2-2.0)</label>
-                                        <input type="number" id="p_sulphates" step="0.01" value="0.6" min="0.2" max="2.0" required>
+                                    <div class="field">
+                                        <label for="p-sulphates">Sulphates</label>
+                                        <input type="number" id="p-sulphates" step="0.01" value="0.6" min="0.2" max="2.0" required>
                                     </div>
-                                    <div class="input-group">
-                                        <label for="p_alcohol">Alcohol % (8-15)</label>
-                                        <input type="number" id="p_alcohol" step="0.1" value="10.5" min="8" max="15" required>
+                                    <div class="field">
+                                        <label for="p-alcohol">Alcohol %</label>
+                                        <input type="number" id="p-alcohol" step="0.1" value="10.5" min="8" max="15" required>
                                     </div>
                                 </div>
-                                <button type="submit" class="primary-btn pulse-btn" style="margin-top:20px; width:100%">Run Model Prediction</button>
+                                <button type="submit" class="btn-primary">Analyse Wine Quality</button>
                             </form>
                         </div>
-                        <div class="result-panel glass-card">
-                            <h3>Prediction Result</h3>
-                            <div class="score-display">
-                                <div class="score-circle">
-                                    <span id="pred-score">--</span>
-                                </div>
-                                <p id="pred-exact">Exact: --</p>
+
+                        <!-- Result panel -->
+                        <div class="card result-card">
+                            <span class="result-label">Predicted Score</span>
+                            <div class="score-ring">
+                                <span id="pred-score">—</span>
                             </div>
-                            <div class="quality-meter">
-                                <div class="meter-bar" id="meter-bar"></div>
+                            <div class="exact-score" id="pred-exact">Run a prediction to see results</div>
+                            <div class="quality-bar-wrap">
+                                <div class="quality-bar-label"><span>Poor</span><span>Excellent</span></div>
+                                <div class="quality-bar-track">
+                                    <div class="quality-bar-fill" id="quality-bar"></div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </section>
 
                 <!-- TAB: BATCH PREDICT -->
-                <section id="tab-batch" class="tab-content hidden">
-                    <header class="content-header">
+                <section id="tab-batch" class="tab-section">
+                    <div class="section-header">
                         <h2>Batch Predictions</h2>
-                        <p>Upload a CSV file containing multiple wine profiles.</p>
-                    </header>
-                    <div class="glass-card">
-                        <div class="upload-zone" id="upload-zone">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="48" height="48"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                            <p>Drag and drop your CSV here or <label for="csv-file" class="upload-label">Browse</label></p>
-                            <input type="file" id="csv-file" accept=".csv" style="display:none">
+                        <p>Upload a CSV file with multiple wine profiles to get predictions in bulk.</p>
+                    </div>
+                    <div class="card">
+                        <div class="drop-zone" id="drop-zone">
+                            <div class="drop-icon">📂</div>
+                            <p>Drop your CSV here, or <span class="drop-link" id="browse-link">browse files</span></p>
+                            <input type="file" id="csv-input" accept=".csv" style="display:none">
                         </div>
-                        <div id="batch-results" class="batch-results hidden">
-                            <button id="download-csv-btn" class="primary-btn" style="margin-bottom: 1rem;">Download Results CSV</button>
-                            <div class="table-container">
-                                <table id="batch-table">
-                                    <thead></thead>
-                                    <tbody></tbody>
-                                </table>
+                        <div id="batch-output" class="hidden">
+                            <div style="display:flex;gap:1rem;margin:1.5rem 0 1rem;">
+                                <button class="btn-primary" id="download-btn" style="width:auto;padding:0.7rem 1.5rem">⬇ Download CSV</button>
+                            </div>
+                            <div class="tbl-wrap">
+                                <table id="batch-table"><thead></thead><tbody></tbody></table>
                             </div>
                         </div>
                     </div>
                 </section>
 
                 <!-- TAB: HISTORY -->
-                <section id="tab-history" class="tab-content hidden">
-                    <header class="content-header">
-                        <h2>Prediction Log</h2>
-                        <p>History of all past quality assessments.</p>
-                        <button id="refresh-history" class="secondary-btn">Refresh Logs</button>
-                    </header>
-                    <div class="glass-card">
-                        <div class="table-container">
+                <section id="tab-history" class="tab-section">
+                    <div class="section-header" style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:1rem">
+                        <div>
+                            <h2>Prediction Log</h2>
+                            <p>A record of all past quality assessments.</p>
+                        </div>
+                        <button class="btn-secondary" id="refresh-btn">🔄 Refresh</button>
+                    </div>
+                    <div class="card">
+                        <div class="tbl-wrap">
                             <table id="history-table">
                                 <thead>
                                     <tr>
-                                        <th>ID</th>
-                                        <th>Time</th>
+                                        <th>#</th>
+                                        <th>Timestamp</th>
                                         <th>Type</th>
-                                        <th>Alcohol</th>
+                                        <th>Alcohol %</th>
                                         <th>pH</th>
-                                        <th>Predicted</th>
+                                        <th>Predicted Score</th>
                                     </tr>
                                 </thead>
-                                <tbody></tbody>
+                                <tbody id="history-body"></tbody>
                             </table>
                         </div>
                     </div>
                 </section>
 
                 <!-- TAB: INSIGHTS -->
-                <section id="tab-insights" class="tab-content hidden">
-                    <header class="content-header">
+                <section id="tab-insights" class="tab-section">
+                    <div class="section-header">
                         <h2>Model Insights</h2>
-                        <p>Global Feature Importance for the Random Forest Regressor</p>
-                    </header>
-                    <div class="glass-card">
-                        <canvas id="importanceChart"></canvas>
+                        <p>Feature importance scores from the trained Random Forest model.</p>
+                    </div>
+                    <div class="card">
+                        <canvas id="importance-chart" style="max-height:420px"></canvas>
                     </div>
                 </section>
 
@@ -235,8 +250,7 @@
         </div>
     </div>
 
-    <!-- Toast Notification -->
-    <div id="toast" class="toast hidden"></div>
+    <div id="toast"></div>
 
     <script src="app.js"></script>
 </body>
