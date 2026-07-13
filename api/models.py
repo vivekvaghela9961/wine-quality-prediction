@@ -2,18 +2,22 @@ import datetime
 from sqlalchemy import Column, Integer, Float, String, DateTime
 from api.database import Base
 
+
 class User(Base):
     """User table for API client authentication."""
+
     __tablename__ = "users"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
 
+
 class PredictionLog(Base):
     """Prediction log table tracking all quality prediction requests."""
+
     __tablename__ = "prediction_logs"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     timestamp = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
     wine_type = Column(String, nullable=False)
