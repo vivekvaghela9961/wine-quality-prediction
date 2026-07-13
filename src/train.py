@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
-from sklearn.model_selection import train_test_split
+import optuna
+from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor
 from xgboost import XGBRegressor
@@ -8,12 +9,38 @@ from lightgbm import LGBMRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from src.feature_engineering import scale_features
 
+# Disable Optuna verbose logging by default to keep output clean
+optuna.logging.set_verbosity(optuna.logging.WARNING)
+
 def load_processed_data(filepath: str):
     """Load the processed wine quality dataset."""
     df = pd.read_csv(filepath)
     X = df.drop(columns=["quality"])
     y = df["quality"]
     return X, y
+
+def tune_random_forest(X_train, y_train):
+    """Tune RandomForestRegressor using Optuna."""
+    print("Running Optuna hyperparameter optimization for Random Forest...")
+    
+    def objective(trial):
+        params = {
+            "n_estimators": trial.suggest_int("n_estimators", 50, 200),
+            "max_depth": trial.suggest_int("max_depth", 5, 20),
+            "min_samples_split": trial.suggest_int("min_samples_split", 2, 10),
+            "min_samples_leaf": trial.suggest_int("min_samples_leaf", 1, 5),
+            "random_state": 42
+        }
+        model = RandomForestRegressor(**params)
+        # Use 3-fold cross validation for speed
+        score = cross_val_score(model, X_train, y_train, cv=3, scoring="neg_root_mean_squared_error").mean()
+        return -score  # Minimize RMSE
+
+    study = optuna.create_study(direction="minimize")
+    study.optimize(objective, n_trials=10)
+    print(f"Best trial: RMSE {study.best_value:.4f}")
+    print(f"Best params: {study.best_params}")
+    return study.best_params
 
 def main():
     print("Loading processed dataset...")
@@ -40,7 +67,7 @@ def main():
     results = []
     
     for name, model in models.items():
-        print(f"Training {name}...")
+        print(f"Training baseline {name}...")
         model.fit(X_train_scaled, y_train)
         
         # Predict and evaluate
@@ -56,10 +83,27 @@ def main():
             "R2": r2
         })
         
-    # Display results as a DataFrame
     results_df = pd.DataFrame(results)
-    print("\n--- Model Comparison ---")
+    print("\n--- Model Comparison (Baseline) ---")
     print(results_df.to_string(index=False))
+    
+    # Tune the best model (Random Forest)
+    best_params = tune_random_forest(X_train_scaled, y_train)
+    
+    # Train final model with best params
+    print("\nTraining final tuned RandomForest model...")
+    best_model = RandomForestRegressor(**best_params, random_state=42)
+    best_model.fit(X_train_scaled, y_train)
+    
+    final_preds = best_model.predict(X_test_scaled)
+    final_mae = mean_absolute_error(y_test, final_preds)
+    final_rmse = np.sqrt(mean_squared_error(y_test, final_preds))
+    final_r2 = r2_score(y_test, final_preds)
+    
+    print("\n--- Tuned Random Forest Evaluation ---")
+    print(f"Mean Absolute Error (MAE): {final_mae:.4f}")
+    print(f"Root Mean Squared Error (RMSE): {final_rmse:.4f}")
+    print(f"R2 Score: {final_r2:.4f}")
 
 if __name__ == "__main__":
     main()
