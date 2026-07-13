@@ -175,3 +175,41 @@ def test_get_metrics(client):
     assert json_data["RMSE"] == pytest.approx(0.6655)
     assert json_data["R2"] == pytest.approx(0.4109)
     assert json_data["CV_RMSE_Mean"] == pytest.approx(0.7423)
+
+def test_predict_batch_invalid_extension(client, auth_headers):
+    # Uploading a non-csv file
+    files = {"file": ("wines.txt", "some,text,data\n1,2,3", "text/plain")}
+    response = client.post("/predict_batch", files=files, headers=auth_headers)
+    assert response.status_code == 400
+    assert "Only CSV files are supported" in response.json()["detail"]
+
+def test_predict_batch_missing_fields(client, auth_headers):
+    # Missing alcohol and pH columns
+    csv_data = (
+        "fixed_acidity,volatile_acidity,citric_acid,residual_sugar,chlorides,"
+        "free_sulfur_dioxide,total_sulfur_dioxide,density,sulphates,type\n"
+        "7.4,0.7,0.0,1.9,0.076,11.0,34.0,0.9978,0.56,red\n"
+    )
+    files = {"file": ("wines.csv", csv_data, "text/csv")}
+    response = client.post("/predict_batch", files=files, headers=auth_headers)
+    assert response.status_code == 400
+    assert "Missing required columns in CSV" in response.json()["detail"]
+
+def test_predict_batch_invalid_wine_types(client, auth_headers):
+    # Containing 'beer' as type
+    csv_data = (
+        "fixed_acidity,volatile_acidity,citric_acid,residual_sugar,chlorides,"
+        "free_sulfur_dioxide,total_sulfur_dioxide,density,pH,sulphates,alcohol,type\n"
+        "7.4,0.7,0.0,1.9,0.076,11.0,34.0,0.9978,3.51,0.56,9.4,beer\n"
+    )
+    files = {"file": ("wines.csv", csv_data, "text/csv")}
+    response = client.post("/predict_batch", files=files, headers=auth_headers)
+    assert response.status_code == 400
+    assert "All wines must have type 'red' or 'white'" in response.json()["detail"]
+
+def test_predict_batch_malformed_csv(client, auth_headers):
+    # Completely broken CSV format
+    files = {"file": ("wines.csv", "this is not,a csv,at all,,,\n\n,\n\n,", "text/csv")}
+    response = client.post("/predict_batch", files=files, headers=auth_headers)
+    assert response.status_code == 400
+

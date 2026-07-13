@@ -12,6 +12,7 @@ from xgboost import XGBRegressor
 from lightgbm import LGBMRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from src.feature_engineering import scale_features
+from api.logging_config import training_logger
 
 # Disable Optuna verbose logging by default to keep output clean
 optuna.logging.set_verbosity(optuna.logging.WARNING)
@@ -25,6 +26,7 @@ def load_processed_data(filepath: str):
 
 def tune_random_forest(X_train, y_train):
     """Tune RandomForestRegressor using Optuna."""
+    training_logger.info("Starting hyperparameter tuning using Optuna...")
     print("Running Optuna hyperparameter optimization for Random Forest...")
     
     def objective(trial):
@@ -42,6 +44,7 @@ def tune_random_forest(X_train, y_train):
 
     study = optuna.create_study(direction="minimize")
     study.optimize(objective, n_trials=10)
+    training_logger.info(f"Optuna optimization finished. Best CV RMSE: {study.best_value:.4f}")
     print(f"Best trial: RMSE {study.best_value:.4f}")
     print(f"Best params: {study.best_params}")
     return study.best_params
@@ -60,14 +63,17 @@ def save_artifacts(model, scaler):
         with open(scaler_path, "wb") as f:
             pickle.dump(scaler, f)
             
+        training_logger.info(f"Saved artifacts to {folder}/ directory.")
         print(f"Saved artifacts to {folder}/")
         paths.append((model_path, scaler_path))
     return paths[0]  # Return models/ paths
 
 def main():
     # Set MLflow experiment
+    training_logger.info("Initializing MLflow Wine Quality Prediction experiment...")
     mlflow.set_experiment("Wine Quality Prediction")
     
+    training_logger.info("Loading processed dataset...")
     print("Loading processed dataset...")
     X, y = load_processed_data("data/processed/winequality-processed.csv")
     
@@ -93,7 +99,9 @@ def main():
     
     # Start MLflow run for comparison
     with mlflow.start_run(run_name="Model Comparison") as comparison_run:
+        training_logger.info("Starting model comparison baseline runs...")
         for name, model in models.items():
+            training_logger.info(f"Training model: {name}")
             print(f"Training baseline {name}...")
             model.fit(X_train_scaled, y_train)
             
@@ -153,6 +161,7 @@ def main():
         # Log artifacts and model to MLflow
         mlflow.sklearn.log_model(best_model, "random_forest_model")
         mlflow.log_artifact(scaler_path)
+        training_logger.info("Logged model and scaler artifacts to MLflow registry.")
         print("Logged model and scaler to MLflow.")
 
 if __name__ == "__main__":
