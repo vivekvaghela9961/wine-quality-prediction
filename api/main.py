@@ -285,3 +285,30 @@ async def predict_batch(file: UploadFile = File(...)):
             status_code=500,
             detail=f"Error performing batch prediction: {str(e)}"
         )
+
+@app.get("/model_info")
+def get_model_info():
+    """Return parameters and features expected by the trained model."""
+    if model is None:
+        raise HTTPException(status_code=503, detail="Model is not loaded.")
+    return {
+        "model_name": type(model).__name__,
+        "parameters": model.get_params(),
+        "features": [
+            "fixed acidity", "volatile acidity", "citric acid", "residual sugar",
+            "chlorides", "free sulfur dioxide", "total sulfur dioxide", "density",
+            "pH", "sulphates", "alcohol", "total_acidity", "acid_to_sugar_ratio",
+            "bound_sulfur_dioxide", "is_red"
+        ]
+    }
+
+@app.get("/metrics")
+def get_metrics():
+    """Return model performance metrics from final validation and cross-validation."""
+    return {
+        "MAE": 0.5115,
+        "RMSE": 0.6655,
+        "R2": 0.4109,
+        "CV_RMSE_Mean": 0.7423,
+        "CV_RMSE_Std": 0.0361
+    }

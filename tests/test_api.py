@@ -125,3 +125,21 @@ def test_predict_batch(client):
     lines = content.strip().split("\n")
     assert len(lines) == 3  # Header + 2 data rows
 
+def test_get_model_info(client):
+    response = client.get("/model_info")
+    assert response.status_code == 200
+    json_data = response.json()
+    assert json_data["model_name"] == "RandomForestRegressor"
+    assert "parameters" in json_data
+    assert "features" in json_data
+    assert len(json_data["features"]) == 15
+
+def test_get_metrics(client):
+    response = client.get("/metrics")
+    assert response.status_code == 200
+    json_data = response.json()
+    assert json_data["MAE"] == pytest.approx(0.5115)
+    assert json_data["RMSE"] == pytest.approx(0.6655)
+    assert json_data["R2"] == pytest.approx(0.4109)
+    assert json_data["CV_RMSE_Mean"] == pytest.approx(0.7423)
+
