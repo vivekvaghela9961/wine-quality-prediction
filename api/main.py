@@ -19,6 +19,7 @@ from api.auth import (
     create_access_token,
 )
 from api.logging_config import api_logger
+from fastapi.staticfiles import StaticFiles
 
 
 # Define Pydantic schema for single wine input
@@ -117,16 +118,6 @@ async def log_request_process_time(request: Request, call_next):
     )
     response.headers["X-Process-Time"] = str(process_time)
     return response
-
-
-@app.get("/")
-def read_root():
-    """Root endpoint welcoming the user."""
-    return {
-        "message": "Welcome to the Wine Quality Prediction API",
-        "docs_url": "/docs",
-        "status": "running",
-    }
 
 
 @app.get("/health")
@@ -511,3 +502,7 @@ def get_predictions_history(
         }
         for log in logs
     ]
+
+
+# Mount the static frontend at the root path
+app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
