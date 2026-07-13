@@ -1,6 +1,7 @@
 import os
 import io
 import pickle
+import time
 import pandas as pd
 import numpy as np
 from fastapi import FastAPI, HTTPException, UploadFile, File, Depends
@@ -76,6 +77,21 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan
 )
+
+from fastapi import Request
+
+@app.middleware("http")
+async def log_request_process_time(request: Request, call_next):
+    """Middleware tracking process time and status codes for API health monitoring."""
+    start_time = time.time()
+    response = await call_next(request)
+    process_time = time.time() - start_time
+    api_logger.info(
+        f"HTTP Request | Path: {request.url.path} | Method: {request.method} | "
+        f"Status: {response.status_code} | Latency: {process_time:.4f}s"
+    )
+    response.headers["X-Process-Time"] = str(process_time)
+    return response
 
 @app.get("/")
 def read_root():
